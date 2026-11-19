@@ -8,7 +8,8 @@ void main() {
     await tester.pumpWidget(
       const ProviderScope(child: SudokuNovaApp()),
     );
-    await tester.pumpAndSettle();
+    // The menu's hero glow loops forever, so pumpAndSettle would never return.
+    await tester.pump(const Duration(seconds: 1));
     expect(tester.takeException(), isNull);
   });
 }

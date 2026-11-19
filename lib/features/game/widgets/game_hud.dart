@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sudoku/core/theme/app_colors.dart';
 import 'package:sudoku/core/utils/duration_formatter.dart';
-import 'package:sudoku/data/models/difficulty.dart';
 import 'package:sudoku/features/game/controller/game_controller.dart';
 
 class GameHud extends ConsumerWidget {
@@ -15,26 +14,37 @@ class GameHud extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+      // Each slot scales its pill down instead of overflowing, so narrow
+      // phones and large system font sizes both stay intact.
       child: Row(
         children: [
-          // Lives
           Expanded(
-            child: _LivesRow(
-              total: gameState.difficulty.maxLives,
-              remaining: gameState.livesLeft,
-              colors: colors,
+            flex: 3,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: _LivesPill(
+                remaining: gameState.livesLeft,
+                colors: colors,
+              ),
             ),
           ),
-
-          // Timer — always centered
-          _TimerPill(
-            seconds: gameState.elapsedSeconds,
-            colors: colors,
-          ),
-
-          // Hints
+          const SizedBox(width: 8),
           Expanded(
-            child: Align(
+            flex: 4,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: _TimerPill(
+                seconds: gameState.elapsedSeconds,
+                colors: colors,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 3,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
               alignment: Alignment.centerRight,
               child: _HintPill(
                 hintsLeft: gameState.hintsLeft,
@@ -48,47 +58,60 @@ class GameHud extends ConsumerWidget {
   }
 }
 
-class _LivesRow extends StatelessWidget {
-  final int total;
+/// Fixed-width regardless of difficulty, so the HUD can never overflow.
+class _LivesPill extends StatelessWidget {
   final int remaining;
   final AppColorsExtension colors;
 
-  const _LivesRow({
-    required this.total,
-    required this.remaining,
-    required this.colors,
-  });
+  const _LivesPill({required this.remaining, required this.colors});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: List.generate(total, (i) {
-        final filled = i < remaining;
-        return Padding(
-          padding: const EdgeInsets.only(right: 5.0),
-          child: Container(
-            decoration: filled
-                ? BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: colors.errorRed.withValues(alpha: 0.45),
-                        blurRadius: 8,
-                        spreadRadius: 1,
-                      ),
-                    ],
-                  )
-                : null,
-            child: Icon(
-              filled ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
-              color: filled
-                  ? colors.errorRed
-                  : colors.textDisabled.withValues(alpha: 0.5),
-              size: 24,
-            ),
+    final alive = remaining > 0;
+    final color = alive ? colors.errorRed : colors.textDisabled;
+
+    return Semantics(
+      label: '$remaining lives left',
+      excludeSemantics: true,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: colors.surfaceVariant,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: color.withValues(alpha: alive ? 0.75 : 0.3),
+            width: 1.5,
           ),
-        );
-      }),
+          boxShadow: alive
+              ? [
+                  BoxShadow(
+                    color: colors.errorRed.withValues(alpha: 0.18),
+                    blurRadius: 12,
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              alive ? Icons.favorite_rounded : Icons.heart_broken_rounded,
+              color: color,
+              size: 17,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              '×$remaining',
+              style: TextStyle(
+                color: color,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

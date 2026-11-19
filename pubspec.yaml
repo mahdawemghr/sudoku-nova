@@ -1,6 +1,6 @@
 name: sudoku
 description: "Sudoku Nova — a neon-styled local Sudoku puzzle game."
-publish_to: 'none'
+publish_to: "none"
 
 version: 1.0.0+1
 
@@ -60,4 +60,3 @@ flutter:
   uses-material-design: true
   assets:
     - assets/icon/
-    - assets/sounds/

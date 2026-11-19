@@ -4,13 +4,22 @@ import 'package:go_router/go_router.dart';
 import 'package:sudoku/core/services/sound_service.dart';
 import 'package:sudoku/core/theme/app_colors.dart';
 import 'package:sudoku/data/models/difficulty.dart';
+import 'package:sudoku/shared/difficulty_style.dart';
 
 class DifficultyScreen extends StatelessWidget {
   const DifficultyScreen({super.key});
 
+  static const _subtitles = {
+    Difficulty.easy: 'Great for beginners',
+    Difficulty.medium: 'A balanced challenge',
+    Difficulty.hard: 'Test your skills',
+    Difficulty.impossible: 'Only for masters',
+  };
+
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final animate = !MediaQuery.disableAnimationsOf(context);
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -18,71 +27,149 @@ class DifficultyScreen extends StatelessWidget {
         backgroundColor: colors.background,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded,
-              color: colors.textSecondary),
+          tooltip: 'Back',
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: colors.textSecondary,
+          ),
           onPressed: () {
             SoundService().playTap();
             context.go('/');
           },
         ),
-        title: Text(
-          'Select Difficulty',
-          style: TextStyle(
-            color: colors.textPrimary,
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        centerTitle: true,
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-              horizontal: 24.0, vertical: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 16),
-              _DifficultyButton(
-                difficulty: Difficulty.easy,
-                colorToken: _DifficultyColor.secondary,
-                subtitle: 'Great for beginners',
-                icon: Icons.sentiment_satisfied_alt_rounded,
-              )
-                  .animate(delay: 60.ms)
-                  .fadeIn(duration: 300.ms)
-                  .slideY(begin: 0.2, end: 0, duration: 300.ms, curve: Curves.easeOut),
-              const SizedBox(height: 14),
-              _DifficultyButton(
-                difficulty: Difficulty.medium,
-                colorToken: _DifficultyColor.primary,
-                subtitle: 'A balanced challenge',
-                icon: Icons.psychology_rounded,
-              )
-                  .animate(delay: 130.ms)
-                  .fadeIn(duration: 300.ms)
-                  .slideY(begin: 0.2, end: 0, duration: 300.ms, curve: Curves.easeOut),
-              const SizedBox(height: 14),
-              _DifficultyButton(
-                difficulty: Difficulty.hard,
-                colorToken: _DifficultyColor.accent,
-                subtitle: 'Test your skills',
-                icon: Icons.whatshot_rounded,
-              )
-                  .animate(delay: 200.ms)
-                  .fadeIn(duration: 300.ms)
-                  .slideY(begin: 0.2, end: 0, duration: 300.ms, curve: Curves.easeOut),
-              const SizedBox(height: 14),
-              _DifficultyButton(
-                difficulty: Difficulty.impossible,
-                colorToken: _DifficultyColor.error,
-                subtitle: 'Only for masters',
-                icon: Icons.dangerous_rounded,
-              )
-                  .animate(delay: 270.ms)
-                  .fadeIn(duration: 300.ms)
-                  .slideY(begin: 0.2, end: 0, duration: 300.ms, curve: Curves.easeOut),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+          children: [
+            Text(
+              'Choose your\nchallenge',
+              style: TextStyle(
+                color: colors.textPrimary,
+                fontSize: 34,
+                height: 1.1,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 28),
+            for (final (i, d) in Difficulty.values.indexed) ...[
+              if (i > 0) const SizedBox(height: 12),
+              _entrance(
+                _DifficultyCard(difficulty: d, subtitle: _subtitles[d]!),
+                i,
+                animate,
+              ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _entrance(Widget child, int index, bool animate) {
+    if (!animate) return child;
+    return child
+        .animate(delay: (index * 50).ms)
+        .fadeIn(duration: 260.ms, curve: Curves.easeOut)
+        .slideY(begin: 0.06, end: 0, duration: 260.ms, curve: Curves.easeOut);
+  }
+}
+
+class _DifficultyCard extends StatefulWidget {
+  final Difficulty difficulty;
+  final String subtitle;
+
+  const _DifficultyCard({required this.difficulty, required this.subtitle});
+
+  @override
+  State<_DifficultyCard> createState() => _DifficultyCardState();
+}
+
+class _DifficultyCardState extends State<_DifficultyCard> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final d = widget.difficulty;
+    final color = d.color(colors);
+
+    return Semantics(
+      button: true,
+      label:
+          '${d.displayName}. ${widget.subtitle}. ${d.maxLives} lives, ${d.maxHints} hints.',
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapUp: (_) {
+          setState(() => _pressed = false);
+          SoundService().playTap();
+          context.go('/game?difficulty=${d.label}');
+        },
+        onTapCancel: () => setState(() => _pressed = false),
+        child: AnimatedScale(
+          scale: _pressed ? 0.98 : 1.0,
+          duration: const Duration(milliseconds: 100),
+          curve: Curves.easeOut,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(20, 18, 16, 18),
+            decoration: BoxDecoration(
+              color: _pressed ? colors.surfaceVariant : colors.surface,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: color.withValues(alpha: _pressed ? 0.9 : 0.45),
+                width: 1.5,
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        d.displayName,
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        widget.subtitle,
+                        style: TextStyle(
+                          color: colors.textSecondary,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          _Stat(
+                            icon: Icons.favorite_rounded,
+                            value: '${d.maxLives}',
+                            color: colors.textSecondary,
+                          ),
+                          const SizedBox(width: 16),
+                          _Stat(
+                            icon: Icons.lightbulb_rounded,
+                            value: '${d.maxHints}',
+                            color: colors.textSecondary,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_rounded,
+                  color: color,
+                  size: 24,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -90,124 +177,29 @@ class DifficultyScreen extends StatelessWidget {
   }
 }
 
-enum _DifficultyColor { primary, secondary, accent, error }
-
-class _DifficultyButton extends StatefulWidget {
-  final Difficulty difficulty;
-  final _DifficultyColor colorToken;
-  final String subtitle;
+class _Stat extends StatelessWidget {
   final IconData icon;
+  final String value;
+  final Color color;
 
-  const _DifficultyButton({
-    required this.difficulty,
-    required this.colorToken,
-    required this.subtitle,
-    required this.icon,
-  });
-
-  @override
-  State<_DifficultyButton> createState() => _DifficultyButtonState();
-}
-
-class _DifficultyButtonState extends State<_DifficultyButton> {
-  bool _pressed = false;
-
-  Color _resolveColor(AppColorsExtension c) {
-    switch (widget.colorToken) {
-      case _DifficultyColor.primary:
-        return c.primaryNeon;
-      case _DifficultyColor.secondary:
-        return c.secondaryNeon;
-      case _DifficultyColor.accent:
-        return c.accentPurple;
-      case _DifficultyColor.error:
-        return c.errorRed;
-    }
-  }
+  const _Stat({required this.icon, required this.value, required this.color});
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.appColors;
-    final color = _resolveColor(colors);
-
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) {
-        setState(() => _pressed = false);
-        SoundService().playTap();
-        context.go('/game?difficulty=${widget.difficulty.label}');
-      },
-      onTapCancel: () => setState(() => _pressed = false),
-      child: AnimatedScale(
-        scale: _pressed ? 0.96 : 1.0,
-        duration: const Duration(milliseconds: 80),
-        curve: Curves.easeOut,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 80),
-          curve: Curves.easeOut,
-          padding: const EdgeInsets.symmetric(
-              horizontal: 20.0, vertical: 18.0),
-          decoration: BoxDecoration(
-            color: _pressed
-                ? color.withValues(alpha: 0.14)
-                : colors.surfaceVariant,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: color.withValues(alpha: _pressed ? 0.9 : 0.5),
-              width: _pressed ? 2.0 : 1.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: color.withValues(alpha: _pressed ? 0.22 : 0.10),
-                blurRadius: _pressed ? 18 : 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(widget.icon, color: color, size: 26),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.difficulty.displayName,
-                      style: TextStyle(
-                        color: color,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      widget.subtitle,
-                      style: TextStyle(
-                        color: colors.textSecondary,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                color: color.withValues(alpha: 0.6),
-                size: 18,
-              ),
-            ],
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 15, color: color),
+        const SizedBox(width: 5),
+        Text(
+          value,
+          style: TextStyle(
+            color: color,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
           ),
         ),
-      ),
+      ],
     );
   }
 }

@@ -50,6 +50,12 @@ android {
 
     buildTypes {
         release {
+            if (!keystorePropertiesFile.exists()) {
+                throw GradleException(
+                    "android/key.properties not found. Create it with storeFile, " +
+                        "storePassword, keyAlias and keyPassword to build a signed release."
+                )
+            }
             signingConfig = signingConfigs.getByName("release")
         }
     }
